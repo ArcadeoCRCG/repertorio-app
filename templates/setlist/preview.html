@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}{{ setlist.event_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <div>
+        <h2>📋 {{ setlist.event_name }}</h2>
+        <p style="color:#aaa; margin-top:4px;">
+            {{ setlist.songs|length }} canciones · {{ setlist.created_at.strftime('%d/%m/%Y %H:%M') }}
+        </p>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <a href="{{ url_for('setlist.index') }}" class="btn btn-secondary">← Volver</a>
+        <a href="{{ url_for('setlist.download_pdf', setlist_id=setlist.id) }}"
+           class="btn btn-primary" target="_blank">📄 Descargar PDF</a>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="songs-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Canción</th>
+                <th>Género</th>
+                <th>Tono</th>
+                <th>Cantante</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entrada in setlist.songs %}
+            <tr>
+                <td style="text-align:center">{{ entrada.position }}</td>
+                <td><strong>{{ entrada.song.title }}</strong></td>
+                <td><span class="badge badge-genre">{{ entrada.song.genre }}</span></td>
+                <td><span class="badge badge-key">{{ entrada.song.key }}</span></td>
+                <td>{{ entrada.song.singer }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

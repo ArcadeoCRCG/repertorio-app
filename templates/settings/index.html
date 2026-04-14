@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Configuración{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>⚙️ Configuración del Grupo</h2>
+</div>
+
+<div class="settings-grid">
+
+    <!-- TARJETA: NOMBRE DEL GRUPO -->
+    <div class="settings-card">
+        <h3>🎸 Nombre del grupo</h3>
+        <form method="POST">
+            <input type="hidden" name="action" value="update_name">
+            <div class="form-group">
+                <label>Nombre actual</label>
+                <input type="text" name="group_name"
+                       value="{{ current_user.group_name }}" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar nombre</button>
+        </form>
+    </div>
+
+    <!-- TARJETA: LOGO -->
+    <div class="settings-card">
+        <h3>🖼️ Logo del grupo</h3>
+
+        <!-- Preview del logo actual -->
+        <div class="logo-preview">
+            {% if current_user.logo_path %}
+                <img src="{{ url_for('static', filename=current_user.logo_path) }}"
+                     alt="Logo actual" class="logo-img">
+                <p class="hint">Logo actual</p>
+            {% else %}
+                <div class="logo-placeholder">Sin logo</div>
+            {% endif %}
+        </div>
+
+        <!-- Subir nuevo logo -->
+        <form method="POST" enctype="multipart/form-data" style="margin-bottom:12px;">
+            <input type="hidden" name="action" value="upload_logo">
+            <div class="form-group">
+                <label>Subir imagen <span class="hint">(PNG, JPG, máx 2MB)</span></label>
+                <input type="file" name="logo" accept="image/*" class="file-input">
+            </div>
+            <button type="submit" class="btn btn-primary">Subir logo</button>
+        </form>
+
+        <!-- Eliminar logo -->
+        {% if current_user.logo_path %}
+        <form method="POST"
+              onsubmit="return confirm('¿Eliminar el logo actual?')">
+            <input type="hidden" name="action" value="delete_logo">
+            <button type="submit" class="btn btn-danger btn-sm">🗑️ Quitar logo</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- TARJETA: CAMBIAR CONTRASEÑA -->
+    <div class="settings-card">
+        <h3>🔒 Cambiar contraseña</h3>
+        <form method="POST">
+            <input type="hidden" name="action" value="change_password">
+            <div class="form-group">
+                <label>Contraseña actual</label>
+                <input type="password" name="current_password"
+                       placeholder="••••••••" required>
+            </div>
+            <div class="form-group">
+                <label>Nueva contraseña</label>
+                <input type="password" name="new_password"
+                       placeholder="••••••••" required>
+            </div>
+            <div class="form-group">
+                <label>Repetir nueva contraseña</label>
+                <input type="password" name="repeat_password"
+                       placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
+        </form>
+    </div>
+
+    <!-- TARJETA: INFO DE CUENTA -->
+    <div class="settings-card">
+        <h3>👤 Información de cuenta</h3>
+        <div class="info-row">
+            <span class="info-label">Usuario</span>
+            <span class="info-value">{{ current_user.username }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Miembro desde</span>
+            <span class="info-value">{{ current_user.created_at.strftime('%d/%m/%Y') }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Canciones</span>
+            <span class="info-value">{{ current_user.songs|length }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Setlists generados</span>
+            <span class="info-value">{{ current_user.setlists|length }}</span>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

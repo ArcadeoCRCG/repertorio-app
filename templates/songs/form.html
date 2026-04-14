@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if song else 'Nueva' }} Canción{% endblock %}
+
+{% block content %}
+<div class="form-page">
+    <div class="form-card">
+        <h2>{{ '✏️ Editar' if song else '🎵 Nueva' }} Canción</h2>
+
+        <form method="POST">
+            <div class="form-group">
+                <label>Nombre de la canción</label>
+                <input type="text" name="title" 
+                       value="{{ song.title if song else '' }}"
+                       placeholder="ej: La Bamba" required>
+            </div>
+
+            <div class="form-group">
+                <label>Género</label>
+                <input type="text" name="genre"
+                       value="{{ song.genre if song else '' }}"
+                       placeholder="ej: Cumbia, Rock, Norteño" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tono</label>
+                    <select name="key" required>
+                        <option value="">Seleccionar...</option>
+                        {% set tonos = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B',
+                                        'Cm','C#m','Dm','D#m','Em','Fm','F#m','Gm','G#m','Am','A#m','Bm'] %}
+                        {% for tono in tonos %}
+                            <option value="{{ tono }}" 
+                                    {% if song and song.key == tono %}selected{% endif %}>
+                                {{ tono }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Cantante</label>
+                    <input type="text" name="singer"
+                           value="{{ song.singer if song else '' }}"
+                           placeholder="ej: Juan, María" required>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="{{ url_for('songs.index') }}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">
+                    {{ 'Guardar cambios' if song else 'Agregar canción' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

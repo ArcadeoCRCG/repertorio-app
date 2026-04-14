@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% block title %}Setlist{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>📋 Generador de Setlist</h2>
+</div>
+
+<div class="setlist-layout">
+
+    <!-- FORMULARIO IZQUIERDA -->
+    <div class="setlist-builder">
+        <h3>Nuevo Setlist</h3>
+
+        <form method="POST" action="{{ url_for('setlist.generate') }}" id="setlist-form">
+
+            <div class="form-group">
+                <label>Nombre del evento</label>
+                <input type="text" name="event_name"
+                       placeholder="ej: Boda García, Feria Municipal, Cumpleaños..." required>
+            </div>
+
+            <!-- CANCIONES SELECCIONADAS (orden arrastrable) -->
+            <div class="form-group">
+                <label>Canciones seleccionadas <span class="hint">(arrastra para ordenar)</span></label>
+                <ul id="selected-list" class="selected-songs">
+                    <li class="empty-hint" id="empty-hint">
+                        👆 Selecciona canciones de la lista de abajo
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Inputs hidden que se envían al servidor -->
+            <div id="hidden-inputs"></div>
+
+            <button type="submit" class="btn btn-primary btn-block" id="btn-generar" disabled>
+                🎵 Generar PDF
+            </button>
+        </form>
+    </div>
+
+    <!-- LISTA DE CANCIONES DERECHA -->
+    <div class="song-picker">
+        <h3>Canciones disponibles
+            <span class="hint">({{ songs|length }} en total)</span>
+        </h3>
+
+        <input type="text" id="picker-search"
+               placeholder="🔍 Buscar canción..."
+               class="picker-search">
+
+        <ul id="song-list" class="song-list">
+            {% for song in songs %}
+            <li class="song-item"
+                data-id="{{ song.id }}"
+                data-title="{{ song.title }}"
+                data-genre="{{ song.genre }}"
+                data-key="{{ song.key }}"
+                data-singer="{{ song.singer }}"
+                onclick="addSong(this)">
+                <div class="song-item-title">{{ song.title }}</div>
+                <div class="song-item-meta">
+                    {{ song.genre }} · {{ song.key }} · {{ song.singer }}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- HISTORIAL DE SETLISTS -->
+{% if setlists %}
+<div class="setlist-history">
+    <h3>📁 Setlists guardados</h3>
+    <div class="history-list">
+        {% for sl in setlists %}
+        <div class="history-item">
+            <div>
+                <strong>{{ sl.event_name }}</strong>
+                <span class="hint">· {{ sl.songs|length }} canciones · {{ sl.created_at.strftime('%d/%m/%Y') }}</span>
+            </div>
+            <div class="history-actions">
+                <a href="{{ url_for('setlist.preview', setlist_id=sl.id) }}"
+                   class="btn btn-secondary btn-sm">👁️ Ver</a>
+                <a href="{{ url_for('setlist.download_pdf', setlist_id=sl.id) }}"
+                   class="btn btn-primary btn-sm" target="_blank">📄 PDF</a>
+                <form method="POST" action="{{ url_for('setlist.delete', setlist_id=sl.id) }}"
+                      onsubmit="return confirm('¿Eliminar este setlist?')" style="display:inline">
+                    <button class="btn btn-danger btn-sm">🗑️</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<script>
+// Lista de IDs seleccionados en orden
+let selectedSongs = [];
+
+function addSong(el) {
+    const id     = el.dataset.id;
+    const title  = el.dataset.title;
+    const genre  = el.dataset.genre;
+    const key    = el.dataset.key;
+    const singer = el.dataset.singer;
+
+    // Evitar duplicados
+    if (selectedSongs.find(s => s.id === id)) {
+        el.classList.add('shake');
+        setTimeout(() => el.classList.remove('shake'), 400);
+        return;
+    }
+
+    selectedSongs.push({ id, title, genre, key, singer });
+    el.classList.add('selected');
+    renderSelected();
+}
+
+function removeSong(id) {
+    selectedSongs = selectedSongs.filter(s => s.id !== id);
+    // Quitar clase selected de la lista
+    document.querySelectorAll('.song-item').forEach(el => {
+        if (el.dataset.id === id) el.classList.remove('selected');
+    });
+    renderSelected();
+}
+
+function renderSelected() {
+    const list   = document.getElementById('selected-list');
+    const hidden = document.getElementById('hidden-inputs');
+    const hint   = document.getElementById('empty-hint');
+    const btn    = document.getElementById('btn-generar');
+
+    list.innerHTML   = '';
+    hidden.innerHTML = '';
+
+    if (selectedSongs.length === 0) {
+        list.appendChild(hint || (() => {
+            const li = document.createElement('li');
+            li.className = 'empty-hint';
+            li.id = 'empty-hint';
+            li.textContent = '👆 Selecciona canciones de la lista de abajo';
+            return li;
+        })());
+        btn.disabled = true;
+        return;
+    }
+
+    btn.disabled = false;
+
+    selectedSongs.forEach((song, i) => {
+        // Item visual con drag handle
+        const li = document.createElement('li');
+        li.className = 'selected-item';
+        li.draggable = true;
+        li.dataset.id = song.id;
+        li.innerHTML = `
+            <span class="drag-handle">☰</span>
+            <span class="pos-num">${i + 1}</span>
+            <div class="selected-info">
+                <strong>${song.title}</strong>
+                <small>${song.genre} · ${song.key} · ${song.singer}</small>
+            </div>
+            <button type="button" onclick="removeSong('${song.id}')" class="btn-remove">✕</button>
+        `;
+        setupDrag(li);
+        list.appendChild(li);
+
+        // Input hidden para enviar al servidor
+        const input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = 'song_ids';
+        input.value = song.id;
+        hidden.appendChild(input);
+    });
+}
+
+// --- DRAG AND DROP para reordenar ---
+let dragSrc = null;
+
+function setupDrag(el) {
+    el.addEventListener('dragstart', e => {
+        dragSrc = el;
+        el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        dragSrc = null;
+    });
+    el.addEventListener('dragover', e => {
+        e.preventDefault();
+        if (dragSrc && dragSrc !== el) el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', e => {
+        e.preventDefault();
+        el.classList.remove('drag-over');
+        if (!dragSrc || dragSrc === el) return;
+
+        const fromId = dragSrc.dataset.id;
+        const toId   = el.dataset.id;
+        const fromIdx = selectedSongs.findIndex(s => s.id === fromId);
+        const toIdx   = selectedSongs.findIndex(s => s.id === toId);
+
+        // Intercambiar posiciones
+        [selectedSongs[fromIdx], selectedSongs[toIdx]] =
+        [selectedSongs[toIdx],   selectedSongs[fromIdx]];
+
+        renderSelected();
+    });
+}
+
+// --- BUSCADOR en la lista de canciones ---
+document.getElementById('picker-search').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.song-item').forEach(el => {
+        const match = el.dataset.title.toLowerCase().includes(q)  ||
+                      el.dataset.genre.toLowerCase().includes(q)  ||
+                      el.dataset.singer.toLowerCase().includes(q);
+        el.style.display = match ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

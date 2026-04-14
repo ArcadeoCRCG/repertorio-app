@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Repertorio{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    {% if current_user.is_authenticated %}
+    <nav class="navbar">
+        <div class="nav-brand">
+            {% if current_user.logo_path %}
+                <img src="{{ url_for('static', filename=current_user.logo_path) }}" alt="Logo" class="nav-logo">
+            {% endif %}
+            <span>{{ current_user.group_name }}</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('songs.index') }}">🎵 Canciones</a></li>
+            <li><a href="{{ url_for('setlist.index') }}">📋 Setlist</a></li>
+            <li><a href="{{ url_for('settings.index') }}">⚙️ Configuración</a></li>
+            <li><a href="{{ url_for('auth.logout') }}">🚪 Salir</a></li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    <main class="container">
+
+        <!-- Mensajes flash (errores, éxitos) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+</body>
+</html>

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Canciones — {{ current_user.group_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>🎵 Repertorio</h2>
+    <a href="{{ url_for('songs.create') }}" class="btn btn-primary">+ Nueva canción</a>
+</div>
+
+<!-- BUSCADOR -->
+<form method="GET" action="{{ url_for('songs.index') }}" class="search-bar">
+    <select name="genre">
+        <option value="">Todos los géneros</option>
+        {% for g in genres %}
+            <option value="{{ g }}" {% if g == genre_filter %}selected{% endif %}>{{ g }}</option>
+        {% endfor %}
+    </select>
+
+    <select name="singer">
+        <option value="">Todos los cantantes</option>
+        {% for s in singers %}
+            <option value="{{ s }}" {% if s == singer_filter %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-secondary">🔍 Filtrar</button>
+    {% if genre_filter or singer_filter %}
+        <a href="{{ url_for('songs.index') }}" class="btn btn-secondary">✕ Limpiar</a>
+    {% endif %}
+</form>
+
+<!-- CONTADOR -->
+<p class="song-count">{{ songs|length }} canción{{ 'es' if songs|length != 1 }} encontrada{{ 's' if songs|length != 1 }}</p>
+
+<!-- TABLA DE CANCIONES -->
+{% if songs %}
+<div class="table-container">
+    <table class="songs-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Canción</th>
+                <th>Género</th>
+                <th>Tono</th>
+                <th>Cantante</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for song in songs %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><strong>{{ song.title }}</strong></td>
+                <td><span class="badge badge-genre">{{ song.genre }}</span></td>
+                <td><span class="badge badge-key">{{ song.key }}</span></td>
+                <td>{{ song.singer }}</td>
+                <td class="actions">
+                    <a href="{{ url_for('songs.edit', song_id=song.id) }}" 
+                       class="btn btn-secondary btn-sm">✏️ Editar</a>
+                    <form method="POST" 
+                          action="{{ url_for('songs.delete', song_id=song.id) }}"
+                          onsubmit="return confirm('¿Eliminar {{ song.title }}?')">
+                        <button type="submit" class="btn btn-danger btn-sm">🗑️ Borrar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <p>🎼 No hay canciones aún.</p>
+    {% if not genre_filter and not singer_filter %}
+        <a href="{{ url_for('songs.create') }}" class="btn btn-primary">Agregar primera canción</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
